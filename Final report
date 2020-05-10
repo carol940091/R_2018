@@ -1,0 +1,64 @@
+Resource1: https://data.gov.tw/dataset/75220
+Resource2: https://data.gov.tw/dataset/8409
+(皆選取 105 年統計資料)
+#read the dataw
+divorce <- read.csv("C:\\Users\\user\\Desktop\\divorce-1.csv")
+data <- read.csv("C:\\Users\\user\\Desktop\\105edu.csv")
+#select data regarding 桃園
+data <- slice(data, 1490 :1985)
+data$village <- NULL
+#test <- summarise(group_by(data, 月份區域別), total <-
+sum(edu_age_15up_total))
+data <- data[,c(3,4,5,8,9)] #master and docter
+
+data1 <- data[ 1:76,] #桃園區
+data2 <- data[ 77:161,]#中壢區
+data3 <- data[162:188,]#大溪區
+data4 <- data[189:229,]#楊梅區
+data5 <- data[230:266,]#蘆竹區
+data6 <- data[267:284,]#大園區
+data7 <- data[285:314,]#龜山區
+data8 <- data[315:362,]#八德區
+data9 <- data[363:392,]#龍潭區
+data10<- data[393:438,]#平鎮區
+data11<- data[439:461,]#新屋區
+data12<- data[462:485,]#觀音區
+data13<- data[486:495,]#復興區
+#一開始用 group_by 但因為資料型態都是 factor 出現錯誤,所以用土法煉鋼的
+方法切開來再轉成數字
+#加總各區內每一里有碩博學位的人數
+x <- list(data1, data2, data3, data4, data5, data6,
+data7,data8,data9,data10,data11,data12,data13)
+#13 區
+for (j in 1:13){
+a <- x[[j]] # a<-data1
+#5 項資料
+
+for (i in 1:5){
+a[,i] <- as.numeric(as.character(a[,i]))#a[,1] <- numeric(data1)
+}
+x[[j]] <- a
+x[[j]] <- colSums(x[[j]])
+}
+#把各區合為教育程度的 data.frame
+. <- NULL
+for (i in 1:13){
+. <- rbind(.,x[[i]])
+}
+edu <- .
+nd <- divorce[2:13]
+nd <- rowSums(nd)
+district <- divorce[1]
+divorce <- cbind(district, nd)
+edu <- cbind(district, edu)
+# merge two data.frame
+. <- left_join(x = edu,y = divorce, by = "月份區域別")
+colnames(.)[1] <- "district"
+
+dat <- summarise(group_by(., district), dratio = nd/edu_age_15up_total, eduratio =
+(edu_doctor_graduated_m +edu_doctor_graduated_f+edu_master_graduated_m
++edu_master_graduated_f) / edu_age_15up_total)
+g <- ggplot(dat, aes(x = eduratio, y = dratio))
+p <- g + geom_point(aes(color = district), size = 3)
+
+#去除掉 outlier,各區的總人口中離婚率和擁有碩博學位的比例有正相關
